@@ -1,27 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pyldpc import make_ldpc, encode, decode, get_message
+import random
 
-# -------------------------------
-# 1. LDPC 파라미터 설정
-# -------------------------------
-n = 63   # 코드워드 길이
-dv = 2   # variable node degree
-dc = 3   # check node degree
+
+n = 63   # data 길이
+dv = 2   # 한 비트가 몇개의 패리티 검사식에 연결되는가?
+dc = 3   # 한 패리티 검사식이 몇개의 비트와 연결되는가?
+# H 패리티 검사식
+# G.cT=0
+
 H, G = make_ldpc(n, dv, dc, systematic=True, sparse=True)
+# G (nxk)
 k = G.shape[1]
 
+random.seed(42) # 실험의 일정함을 위해
 
 num_messages = 1000  # 만들 메시지 개수
 random_message = np.random.randint(2, size=(num_messages, k)) #랜덤생성
 
-snr_range = np.arange(0, 11, 2)  # SNR 0, 2, 4, 6, 8, 10 dB
+snr_range = np.arange(0,10, 2)  # SNR 
 
 ber_results = []  # Bit Error Rate 저장용
 
-# -------------------------------
-# 3. 시뮬레이션
-# -------------------------------
 for snr in snr_range:
     total_bits = 0
     error_bits = 0
@@ -45,15 +46,23 @@ for snr in snr_range:
 
     ber = error_bits / total_bits
     ber_results.append(ber)
-    print(f"SNR={snr}dB -> BER={ber:.5f}")
+    print(ber)
 
-# -------------------------------
-# 4. 결과 시각화
-# -------------------------------
-plt.figure(figsize=(7, 5))
+# 시각화 snr - ber
+plt.figure(figsize=(8, 6))
+plt.semilogy(snr_range, ber_results, marker='o')
+plt.title("LDPC SNR - BER ")
+plt.xlabel("SNR (dB)")
+plt.ylabel("BER")
+plt.grid(True)
+plt.show()
+
+#시각화 n,k - ber
+'''
+plt.figure(figsize=(8, 6))
 plt.semilogy(snr_range, ber_results, marker='o')
 plt.title("LDPC Bit Error Rate vs SNR")
 plt.xlabel("SNR (dB)")
 plt.ylabel("Bit Error Rate (BER)")
 plt.grid(True, which='both')
-plt.show()
+plt.show()'''
