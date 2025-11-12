@@ -15,7 +15,7 @@ dc_range=[3,7,9]
 snr_range=np.arange(0,8,2)
 
 time_list=[]
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(8, 6))
 for i in range(len(dv_range)):
     dv=dv_range[i]
     dc=dc_range[i]
@@ -50,7 +50,7 @@ for i in range(len(dv_range)):
     time_list.append(end-start)
     plt.semilogy(snr_range, ber_results, marker='o', label=f"dv={dv}, dc={dc}")
 
-plt.title("LDPC SNR - BER for Different (dv,dc)")
+plt.title("LDPC SNR - BER per (dv,dc)")
 plt.xlabel("SNR (dB)")
 plt.ylabel("BER")
 plt.legend(loc='upper right')   # plot에 지정한 label 불러서 범례 생성
@@ -61,8 +61,8 @@ plt.show()
 plt.figure(figsize=(8,6))
 x_labels = [f"({dv},{dc})" for dv,dc in zip(dv_range, dc_range)]
 plt.plot(x_labels, time_list, marker='o')
-plt.title("time per n,k")
-plt.xlabel("(n,k)")
+plt.title("time per dv,dc")
+plt.xlabel("dv,dc")
 plt.ylabel("total_time")
 plt.grid()
 plt.show()

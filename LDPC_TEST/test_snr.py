@@ -4,9 +4,10 @@ from pyldpc import make_ldpc, encode, decode, get_message
 import random
 
 
-n = 63   # data 길이
+n = 63   # data + parity
 dv = 2   # 한 비트가 몇개의 패리티 검사식에 연결되는가?
 dc = 3   # 한 패리티 검사식이 몇개의 비트와 연결되는가?
+
 # H 패리티 검사식
 # G.cT=0
 
@@ -49,6 +50,7 @@ for snr in snr_range:
     print(ber)
 
 # 시각화 snr - ber
+'''
 plt.figure(figsize=(8, 6))
 plt.semilogy(snr_range, ber_results, marker='o')
 plt.title("LDPC SNR - BER ")
@@ -56,13 +58,15 @@ plt.xlabel("SNR (dB)")
 plt.ylabel("BER")
 plt.grid(True)
 plt.show()
+'''
 
 #시각화 n,k - ber
-'''
+
 plt.figure(figsize=(8, 6))
 plt.semilogy(snr_range, ber_results, marker='o')
-plt.title("LDPC Bit Error Rate vs SNR")
+plt.title(f"LDPC SNR - BER (n={})")
 plt.xlabel("SNR (dB)")
-plt.ylabel("Bit Error Rate (BER)")
-plt.grid(True, which='both')
-plt.show()'''
+plt.ylabel("BER")
+plt.grid(True)
+plt.legend()
+plt.show()
