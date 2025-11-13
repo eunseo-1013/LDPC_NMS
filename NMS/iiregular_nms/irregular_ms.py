@@ -43,7 +43,8 @@ print(H)
 def generate_G(H):
     m,n=H.shape
     k=n-m
-    H= sp.Matrix(H)
+    G, _, _ = pyldpc.make_ldpc(n, k, parity_check_matrix=H)
+    '''H= sp.Matrix(H)
     H, _ = H.rref()
     A=H[:,n-k:]
     print("A.shape : ")
@@ -52,16 +53,90 @@ def generate_G(H):
     A_int = np.round(A_np).astype(int) # 반올림 후 정수 변환
     
     G = np.hstack((np.eye(k, dtype=int), A_int.T))
-    #G=np.hstack((np.eye(k,dtype=int),A.T))
+    #G=np.hstack((np.eye(k,dtype=int),A.T))'''
     return G
-    
+'''   
 G=generate_G(H)
 print(G.shape)
 print(G)
-G=G.T
+G=G.T'''
 
 
 print("-----------------------------------")
+def cyclic_shift(vector, shift, Z):
+    """
+    GF(2) 상에서 순환 행렬 곱셈을 구현합니다.
+    (벡터를 'shift'값 만큼 순환 이동 시킵니다.)
+    """
+    if shift == -1:  # -1은 영 행렬(Zero Matrix)을 의미
+        return np.zeros(Z, dtype=int)
+    
+    # np.roll을 사용하여 벡터를 shift 값만큼 순환 이동
+    # 모든 LDPC 비트는 정수 0 또는 1이므로 % 2 연산이 필요 없습니다.
+    # (단, 앞선 GF(2) 덧셈/뺄셈 후에는 % 2가 필요합니다.)
+    return np.roll(vector, shift)
+
+# C-LDPC 인코딩 (H의 QLT 구조 이용)
+def encoding_not_G(H,message):
+    m,n=H.shape
+    k=n-m
+    # H를 정보 부분(Hm)과 패리티 부분(Hp)으로 분리
+    Hm = H[:, :k]  # 0~k
+    Hp = H[:, k:]  # k~n
+    k=k//z
+    # 메시지를 (K_b x Z) = 18x24 블록으로 재구성
+    m_blocks = message.reshape((k, z))
+
+    # 3. 신드롬 s 계산: s = Hm * m^T
+    # s_blocks는 (M_b x Z) = 6x24 크기
+    s_blocks = np.zeros((m, z), dtype=int)
+    
+    for i in range(m):       # H의 각 행 (0 ~ 5)
+        for j in range(k):   # 메시지의 각 블록 (0 ~ 17)
+            shift = Hm[i, j]
+            if shift != -1:
+                shifted_m = cyclic_shift(m_blocks[j], shift, z)
+                s_blocks[i] = (s_blocks[i] + shifted_m) % 2 # GF(2) 덧셈
+
+    # 4. 패리티 p 계산 (순방 대입): Hp * p^T = s
+    # p_blocks는 (M_b x Z) = 6x24 크기
+    p_blocks = np.zeros((m, z), dtype=int)
+
+    for i in range(m):  # 각 패리티 블록 p_i (i=0...5)
+        # a) 이미 계산된 p_j (j < i)의 영향 합산
+        sum_prev_p = np.zeros(z, dtype=int)
+        for j in range(i):  # j = 0 부터 i-1 까지
+            shift = Hp[i, j]
+            if shift != -1:
+                shifted_p = cyclic_shift(p_blocks[j], shift, z)
+                sum_prev_p = (sum_prev_p + shifted_p) % 2
+
+        # b) p_i가 만족해야 할 목표 벡터 계산
+        # B(i,i)*p_i = s_i + sum(B(i,j)*p_j) (for j < i)
+        target = (s_blocks[i] + sum_prev_p) % 2
+
+        # c) p_i 계산: p_i = (B(i,i))^-1 * target
+        # B(i,i)는 'shift'값의 순환 행렬입니다.
+        # (B(i,i))^-1는 '-shift' (또는 Z-shift) 값의 순환 행렬입니다.
+        diag_shift = Hp[i, i]
+        
+        if diag_shift == -1:
+            raise ValueError(f"오류: H_p[{i},{i}]가 영 행렬입니다. 인코딩 불가.")
+        
+        # 순환 역행렬 곱셈 (즉, 반대 방향 시프트)
+        p_blocks[i] = cyclic_shift(target, -diag_shift, z)
+    
+    # 1D 벡터로 펼쳐서 반환
+    parity = p_blocks.flatten()
+    codeword = np.concatenate([message, parity]).astype(int)
+    return codeword
+
+# --- 검증 함수 ---
+    
+
+
+
+
 
 
 # 결과 저장 리스트
@@ -135,15 +210,15 @@ class NMSDecoder(nn.Module):
 
 
 # --- 데이터 생성 함수 ---
-def generate_data(batch_size, n_bits, k_bits, snr_db, G_matrix):
+def generate_data(batch_size, n_bits, k_bits, snr_db, H):
     messages_np = np.random.randint(0, 2, size=(batch_size, k_bits))
-    if hasattr(G_matrix, "toarray"):
-        G_matrix = G_matrix.toarray()
-
+    '''if hasattr(G_matrix, "toarray"):
+        G_matrix = G_matrix.toarray()'''
+    
     codewords_list = []
     for i in range(batch_size):
         message = messages_np[i]
-        codeword = pyldpc.encode(G_matrix, message, snr_db)
+        codeword = encoding_not_G(H,message)
         codewords_list.append(codeword)
 
     codewords_np = np.vstack(codewords_list)
@@ -165,13 +240,12 @@ def generate_data(batch_size, n_bits, k_bits, snr_db, G_matrix):
 # --- 2. 훈련 루프 ---
 if __name__ == '__main__':
     EPOCHS = 5
-    BATCH_SIZE = 50
+    BATCH_SIZE = 10
     SNR_DB = 4.0
     LEARNING_RATE=0.5
+    m,n=H.shape
+    k = n-m
 
-    k = G.shape[1]
-    n = G.shape[0]
-    m = H.shape[0]
 
     # 인덱스 준비
     H_rows, H_cols = H.nonzero()
@@ -187,7 +261,7 @@ if __name__ == '__main__':
 
     print("--- 훈련 시작 ---")
     for epoch in range(EPOCHS):
-        train_llrs, train_messages = generate_data(BATCH_SIZE, n, k, SNR_DB, G)
+        train_llrs, train_messages = generate_data(BATCH_SIZE, n, k, SNR_DB, H)
         #train_llrs = train_llrs.to(device)
         train_messages = train_messages.to(device)
         output_llrs = model(train_llrs)
