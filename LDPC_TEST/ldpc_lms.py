@@ -104,8 +104,8 @@ def generate_data(batch_size, n_bits, k_bits, snr_db, G_matrix):
 
 # --- 2. 훈련 루프 ---
 if __name__ == '__main__':
-    EPOCHS = 50
-    BATCH_SIZE = 1000
+    EPOCHS = 5
+    BATCH_SIZE = 5
     SNR_DB = 4.0
 
     for j in range(len(lr)):
