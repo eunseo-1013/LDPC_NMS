@@ -121,9 +121,6 @@ if __name__ == '__main__':
     print(f"Using device: {device}")
 
     for n_bits_target in N_BITS_LIST:
-        print(f"\n\nN_BITS = {n_bits_target} 훈련 시작")  # <-- 수정됨
-
-        # N_BITS 마다 결과 리스트 초기화
         loss_data = []
         ber_data = []
         fer_data = []
@@ -143,12 +140,12 @@ if __name__ == '__main__':
         m_bits = H.shape[0]
 
         if n_bits_actual != n_bits_target:
-            print(f"Warning: 요청한 N : {n_bits_target} 실제 생성된 N : {n_bits_actual}")
+            print(f"요청한 N : {n_bits_target}과 실제 생성된 N : {n_bits_actual}이 다릅니다.")
 
         print(f"\nLDPC 코드 파라미터 (dv={dv}, dc={dc})")
-        print(f"N (코드워드) = {n_bits_actual}")
-        print(f"K (메시지) = {k_bits}")
-        print(f"M (체크) = {m_bits}")
+        print(f"N = {n_bits_actual}")
+        print(f"K = {k_bits}")
+        print(f"M = {m_bits}")
 
         # 인덱스
         H_rows, H_cols = H.nonzero()
@@ -174,12 +171,10 @@ if __name__ == '__main__':
 
         missing_indices = [i for i, val in enumerate(sys_col_indices) if val == -1]
         if missing_indices:
-            print(f"Warning: {len(missing_indices)}개의 systematic 위치를 찾지 못했습니다.")
+            print(f"{len(missing_indices)}개의 systematic 위치를 찾지 못했습니다.")
             sys_positions = np.array(list(range(k_bits)), dtype=int)
         else:
             sys_positions = np.array(sys_col_indices, dtype=int)
-
-        print(f"Systematic positions (first 10): {sys_positions[:10]}")
 
         # N_BITS 마다 새 모델과 옵티마이저 생성
         model = NOMSDecoder(H_rows, H_cols, n_vars=n_bits_actual, n_checks=m_bits, num_iterations=NUM_ITERATIONS).to(
@@ -220,7 +215,6 @@ if __name__ == '__main__':
                 print(
                     f"Epoch [{epoch + 1}/{EPOCHS}], N = {n_bits_actual}, Loss : {loss.item():.6f}, BER : {current_ber:.6f}, FER : {current_fer:.6f}")
 
-        print(f"훈련 종료 (N = {n_bits_actual})")  # <-- 수정됨
         print(f"훈련된 가중치 (Alpha) :", model.weights.data.squeeze().tolist())
         print(f"훈련된 오프셋 (Beta) :", model.biases.data.squeeze().tolist())
 
