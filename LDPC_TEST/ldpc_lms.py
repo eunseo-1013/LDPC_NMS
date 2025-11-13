@@ -85,7 +85,7 @@ def generate_data(batch_size, n_bits, k_bits, snr_db, G_matrix):
     codewords_list = []
     for i in range(batch_size):
         message = messages_np[i]
-        codeword = pyldpc.encode(G_matrix, message, snr_db)
+        codeword = (G_matrix @message)%2
         codewords_list.append(codeword)
     
     codewords_np = np.vstack(codewords_list)
