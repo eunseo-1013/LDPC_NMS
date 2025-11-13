@@ -236,7 +236,7 @@ def generate_data_regular(batch_size, n_bits, k_bits, snr_db, G_matrix):
     codewords_list = []
     for i in range(batch_size):
         message = messages_np[i]
-        codeword = pyldpc.encode(G_matrix, message, snr_db)
+        codeword = (message @ G_matrix) % 2
         codewords_list.append(codeword)
 
     codewords_np = np.vstack(codewords_list)
@@ -416,8 +416,61 @@ if __name__ == '__main__':
     ber_data.append(current_ber_lst)
     fer_data.append(current_fer_lst)
 
-    # --- 3. 결과 플롯 ---
+    # -------------------- 결과 그래프 ------------------------------
+    # 2. 서브플롯 생성: 2행 1열, x축 공유
+
     date = np.array(range(1, EPOCHS + 1))
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, figsize=(10, 6))
+    # 두 그래프 사이의 수직 간격을 좁힙니다.
+    fig.subplots_adjust(hspace=0.05) 
+
+    # 3. 중요: 두 개의 서브플롯 모두에 동일한 데이터를 플롯합니다.
+    ax1.plot(date, loss_data[0], label="regular")
+    ax1.plot(date, loss_data[1], label="irregular")
+    ax2.plot(date, loss_data[0], label="regular")
+    ax2.plot(date, loss_data[1], label="irregular")
+
+    # 4. y축 범위 설정 (핵심)
+    # ax1 (위쪽 그래프)는 높은 값 범위를 표시
+    ax1.set_ylim(15, 17)  # 9.5 ~ 11 사이의 값만 표시
+    # ax2 (아래쪽 그래프)는 낮은 값 범위를 표시
+    ax2.set_ylim(0.5, 2)   # 0.5 ~ 2 사이의 값만 표시
+
+    # 5. 축 숨기기
+    # 위쪽 그래프(ax1)의 아래쪽 축선을 숨깁니다.
+    ax1.spines['bottom'].set_visible(False)
+    # 아래쪽 그래프(ax2)의 위쪽 축선을 숨깁니다.
+    ax2.spines['top'].set_visible(False)
+    # 위쪽 그래프(ax1)의 x축 틱(눈금)을 제거합니다. (레이블은 sharex=True로 이미 숨겨짐)
+    ax1.tick_params(axis='x', length=0)
+    ax2.xaxis.tick_bottom()
+
+    # 6. 끊어진 축을 시각적으로 표시하는 대각선 '//' 그리기
+    d = .015  # 대각선 크기
+    kwargs = dict(transform=ax1.transAxes, color='k', clip_on=False)
+    ax1.plot((-d, +d), (-d, +d), **kwargs)        # 위쪽 그래프의 좌하단
+    ax1.plot((1 - d, 1 + d), (-d, +d), **kwargs)  # 위쪽 그래프의 우하단
+
+    kwargs.update(transform=ax2.transAxes)  # 좌표계를 아래쪽 그래프로 변경
+    ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # 아래쪽 그래프의 좌상단
+    ax2.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)  # 아래쪽 그래프의 우상단
+
+    # 7. 레이블 및 제목 설정
+    ax1.set_title("Loss (regular vs irregular)")
+    ax2.set_xlabel("Epoch")
+    # Y축 레이블은 두 그래프 중앙에 공통으로 추가
+    fig.text(0.04, 0.5, 'Loss (BCEWithLogits)', va='center', rotation='vertical')
+
+    # 8. 범례(Legend) 및 그리드
+    # 범례는 한쪽에만 표시해도 됩니다.
+    ax1.legend(loc='upper right') 
+    ax1.grid(True)
+    ax2.grid(True)
+
+    plt.show()
+
+
+   
     plt.figure(figsize=(10, 6))
     plt.plot(date, loss_data[0],label="regular")
     plt.plot(date,loss_data[1],label="irregular")

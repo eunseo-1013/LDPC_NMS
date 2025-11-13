@@ -87,8 +87,10 @@ def generate_data(batch_size, n_bits, k_bits, snr_db, G_matrix):
         message = messages_np[i]
         codeword = pyldpc.encode(G_matrix, message, snr_db)
         codewords_list.append(codeword)
-
+    
     codewords_np = np.vstack(codewords_list)
+    print("codewords = ")
+    print(codewords_np)
     messages = torch.from_numpy(messages_np).float()
     codewords = torch.from_numpy(codewords_np).float()
 
