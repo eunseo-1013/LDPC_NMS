@@ -322,8 +322,7 @@ if __name__ == '__main__':
     plt.plot(date,loss_data[0],label="irregular")
     plt.xlabel("Epoch")
     plt.ylabel("Loss (BCEWithLogits)")
-    plt.title("Loss （N0576_R34_z24 - " \
-    "irregular)")
+    plt.title("Loss （N0576_R34_z24 - irregular)")
     plt.legend(loc='upper right')
     plt.grid(True)
     plt.show()
